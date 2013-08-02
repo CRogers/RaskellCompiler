@@ -52,7 +52,7 @@ exprBasic =
 
 app = do
 	f  <- exprBasic
-	es <- many1 expr
+	es <- many1 exprBasic
 	return $ App f es
 
 lambda = do
@@ -62,8 +62,18 @@ lambda = do
 	e <- expr
 	return $ Abs ps e
 
+ifThenElse = do
+	symbol "if"
+	e1 <- expr
+	symbol "then"
+	e2 <- expr
+	symbol "else"
+	e3 <- expr
+	return $ If e1 e2 e3
+
 expr =
 	    lambda
+	<|> ifThenElse
 	<|> try app
 	<|> exprBasic
 
@@ -76,4 +86,4 @@ func = do
 	e <- expr
 	return $ FuncDef n (Abs ps e)
 
-a = case testP func "f x y = (a b) c d" of Right (FuncDef _ x) -> x
+a = case testP func "f x y = (a b) (if c then f else g) d" of Right (FuncDef _ x) -> x

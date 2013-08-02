@@ -18,6 +18,7 @@ data Expr =
 	| ConstInt Integer
 	| Abs [Param] Expr
 	| App Expr [Expr]
+	| If Expr Expr Expr
 	deriving (Show)
 
 data Def =
