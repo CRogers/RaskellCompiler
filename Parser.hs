@@ -38,7 +38,6 @@ integer = PT.integer lexer
 ws = PT.whiteSpace lexer
 symbol = PT.symbol lexer
 
-
 constInt = integer >>= return . ConstInt
 
 var = do
@@ -71,9 +70,24 @@ ifThenElse = do
 	e3 <- expr
 	return $ If e1 e2 e3
 
+defn = do
+	n <- ident
+	symbol "="
+	e <- expr
+	return $ Val n e
+
+letIn = do
+	symbol "let"
+	d <- defn
+	symbol "in"
+	e <- expr
+	return $ Let d e
+
+
 expr =
 	    lambda
 	<|> ifThenElse
+	<|> letIn
 	<|> try app
 	<|> exprBasic
 
@@ -87,3 +101,4 @@ func = do
 	return $ FuncDef n (Abs ps e)
 
 a = case testP func "f x y = (a b) (if c then f else g) d" of Right (FuncDef _ x) -> x
+b = case testP func "f x = let a = x in let b = a in b" of Right (FuncDef _ x) -> x

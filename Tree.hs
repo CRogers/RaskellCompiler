@@ -19,6 +19,11 @@ data Expr =
 	| Abs [Param] Expr
 	| App Expr [Expr]
 	| If Expr Expr Expr
+	| Let Defn Expr
+	deriving (Show)
+
+data Defn =
+	  Val Name Expr
 	deriving (Show)
 
 data Def =
