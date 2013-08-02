@@ -6,6 +6,8 @@ import Control.Monad.State
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Monoid
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Traversable
 
 type Name = String
@@ -55,8 +57,8 @@ removeNullAbs e =
 		Abs [] e -> e
 		_ -> composOp removeNullAbs e
 
-insertMany :: (Ord k) => [k] -> [v] -> Map k v -> Map k v
-insertMany ks vs = Map.union (Map.fromList (zip ks vs))
+insertManyMap :: (Ord k) => [k] -> [v] -> Map k v -> Map k v
+insertManyMap ks vs = Map.union (Map.fromList (zip ks vs))
 
 type Env = Map Param ()
 
@@ -65,7 +67,28 @@ environment e =
 	case e of
 		Abs ps e' -> do
 			env <- get
-			put $ insertMany ps (repeat ()) env
+			put $ insertManyMap ps (repeat ()) env
 			e'' <- environment e'
 			return $ Abs ps e''
 		_ -> composM environment e
+
+data Error = NameError Name
+
+insertManySet :: (Ord a) => [a] -> Set a -> Set a
+insertManySet xs s = Set.union s (Set.fromList xs)
+
+checkNames :: Expr -> State (Set Name) [Error]
+checkNames e =
+	case e of
+		Var n -> do
+			env <- get
+			return $ if Set.member n env then [] else [NameError n]
+		Abs ps e' -> do
+			env <- get
+			put $ insertManySet ps env
+			checkNames e'
+		_ -> composM checkNames e
+
+
+
+
