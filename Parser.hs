@@ -1,4 +1,4 @@
-{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE NoMonomorphismRestriction, GADTs #-}
 
 module Parser where
 
@@ -74,7 +74,7 @@ defn = do
 	n <- ident
 	symbol "="
 	e <- expr
-	return $ Val n e
+	return $ ValBind n e
 
 letIn = do
 	symbol "let"
