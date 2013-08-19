@@ -23,7 +23,7 @@ langDef = PT.LanguageDef {
 	PT.identLetter     = alphaNum <|> char '_',
 	PT.opStart         = operators,
 	PT.opLetter        = operators,
-	PT.reservedNames   = ["let", "in", "if", "then", "else", "where"],
+	PT.reservedNames   = ["let", "in", "if", "then", "else", "where", "type", "data"],
 	PT.reservedOpNames = ["="],
 	PT.caseSensitive   = False
 }

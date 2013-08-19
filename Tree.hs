@@ -33,16 +33,10 @@ data Tree :: * -> * where
 	ValBind  :: Name      -> Expr   -> Binding
 	FuncDef  :: Name      -> Expr   -> Def
 	TypeDef  :: Name      -> Def
+	DataDef  :: Name      -> Def
 
-deriving instance Show Expr_
-deriving instance Show Binding_
-deriving instance Show Def_	
-deriving instance Show a => Show (Tree a)
-
-deriving instance Eq Expr_
-deriving instance Eq Binding_
-deriving instance Eq Def_
-deriving instance Eq a => Eq (Tree a)
+deriving instance Show (Tree a)
+deriving instance Eq (Tree a)
 
 instance Compos Tree where
 	compos f t =
@@ -54,6 +48,7 @@ instance Compos Tree where
 			ValBind n e -> pure ValBind <*> pure n        <*> f e
 			FuncDef n e -> pure FuncDef <*> pure n        <*> f e
 			TypeDef n   -> pure TypeDef <*> pure n
+			DataDef n   -> pure DataDef <*> pure n
 			_ -> pure t
 
 removeNullAbs :: Tree a -> Tree a
