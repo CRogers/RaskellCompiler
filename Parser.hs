@@ -81,7 +81,7 @@ letIn = do
 	d <- defn
 	symbol "in"
 	e <- expr
-	return $ Let d e
+	return $ Let [d] e
 
 
 expr =
@@ -93,12 +93,26 @@ expr =
 
 param = ident
 
-func = do
+funcDef = do
 	n <- ident
 	ps <- many param
 	symbol "="
 	e <- expr
 	return $ FuncDef n (Abs ps e)
 
-a = case testP func "f x y = (a b) (if c then f else g) d" of Right (FuncDef _ x) -> x
-b = case testP func "f x = let a = x in let b = a in b" of Right (FuncDef _ x) -> x
+typeDef = do
+	symbol "type"
+	n <- ident
+	return $ TypeDef n
+
+def = do
+	d <- typeDef <|> funcDef
+	symbol ";"
+	return d
+
+start = do
+	ws
+	many def
+
+a = case testP funcDef "f x y = (a b) (if c then f else g) d;" of Right (FuncDef _ x) -> x
+b = case testP funcDef "f x = let a = x in let b = a in b;" of Right (FuncDef _ x) -> x

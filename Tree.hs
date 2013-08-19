@@ -1,17 +1,15 @@
-{-# LANGUAGE RankNTypes, KindSignatures, GADTs, InstanceSigs #-} 
+{-# LANGUAGE KindSignatures, GADTs, StandaloneDeriving, FlexibleInstances, UndecidableInstances #-} 
 
 module Tree where
 
-import Control.Applicative
-import Control.Monad.Identity
 import Control.Monad.State
+import Control.Applicative
+import Data.Traversable
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Monoid
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Traversable
-import Data.Functor.Compose
+import Compos
 
 type Name = String
 type Param = String
@@ -25,57 +23,37 @@ type Binding = Tree Binding_
 type Def     = Tree Def_
 
 data Tree :: * -> * where
-	Var      :: Name    -> Expr
-	TypeVar  :: Name    -> Expr
-	ConstInt :: Integer -> Expr
-	Abs      :: [Param] -> Expr   -> Expr
-	App      :: Expr    -> [Expr] -> Expr
-	If       :: Expr    -> Expr   -> Expr    -> Expr
-	Let      :: Binding -> Expr   -> Expr
-	ValBind  :: Name    -> Expr   -> Binding
-	FuncDef  :: Name    -> Expr   -> Def
+	Var      :: Name      -> Expr
+	TypeVar  :: Name      -> Expr
+	ConstInt :: Integer   -> Expr
+	Abs      :: [Param]   -> Expr   -> Expr
+	App      :: Expr      -> [Expr] -> Expr
+	If       :: Expr      -> Expr   -> Expr    -> Expr
+	Let      :: [Binding] -> Expr   -> Expr
+	ValBind  :: Name      -> Expr   -> Binding
+	FuncDef  :: Name      -> Expr   -> Def
+	TypeDef  :: Name      -> Def
 
-qshow :: (Show a) => String -> [a] -> String
-qshow n as = n ++ " (" ++ concatMap (\x -> show x ++ ") (") as ++ ")"
+deriving instance Show Expr_
+deriving instance Show Binding_
+deriving instance Show Def_	
+deriving instance Show a => Show (Tree a)
 
-instance Show (Tree a) where
-	show (Var x)       = "Var " ++ show x
-	show (TypeVar x)   = "TypeVar " ++ show x
-	show (ConstInt i)  = "ConstInt " ++ show i
-	show (Abs ps e)    = "Abs " ++ show ps ++ " (" ++ show e ++ ")"
-	show (App e es)    = "App (" ++ show e ++ ") " ++ show es
-	show (If e1 e2 e3) = qshow "If" [e1, e2, e3]
-	show (Let b e) = qshow "Let" [e]
-	show (FuncDef n e) = "FuncDef " ++ show n ++ " (" ++ show e ++ ")"
-
--- https://publications.lib.chalmers.se/records/fulltext/local_75172.pdf
-class Compos t where
-	compos :: Applicative f => (forall a. t a -> f (t a)) -> t c  -> f (t c)
-
-composOp :: Compos t => (forall a. t a -> t a) -> t c -> t c
-composOp f = runIdentity . compos (Identity . f)
-
-composFold :: (Compos t, Monoid o) => (forall a. t a -> o) -> t c -> o
-composFold f = getConst . compos (Const . f)
-
-composM :: (Compos t, Monad m) => (forall a. t a -> m (t a)) -> t c -> m (t c)
-composM f = unwrapMonad . compos (WrapMonad . f)
-
--- http://stackoverflow.com/questions/18294190/applicative-instance-for-monad-m-monoid-o-m-o
-composFoldM :: (Compos t, Monad m, Monoid o) => (forall a. t a -> m o) -> t c -> m o
-composFoldM f = liftM getConst . unwrapMonad . getCompose
-                . compos (Compose . WrapMonad . constM . f)
-	where constM xm = xm >>= (\x -> return $ Const x)
+deriving instance Eq Expr_
+deriving instance Eq Binding_
+deriving instance Eq Def_
+deriving instance Eq a => Eq (Tree a)
 
 instance Compos Tree where
 	compos f t =
 		case t of
-			Abs ps e    -> pure Abs     <*> pure ps <*> f e
-			App e es    -> pure App     <*> f e     <*> traverse f es
-			If e1 e2 e3 -> pure If      <*> f e1    <*> f e2          <*> f e3
-			Let b e     -> pure Let     <*> f b     <*> f e
-			ValBind n e -> pure ValBind <*> pure n  <*> f e
-			FuncDef n e -> pure FuncDef <*> pure n  <*> f e
+			Abs ps e    -> pure Abs     <*> pure ps       <*> f e
+			App e es    -> pure App     <*> f e           <*> traverse f es
+			If e1 e2 e3 -> pure If      <*> f e1          <*> f e2  <*> f e3
+			Let bs e    -> pure Let     <*> traverse f bs <*> f e
+			ValBind n e -> pure ValBind <*> pure n        <*> f e
+			FuncDef n e -> pure FuncDef <*> pure n        <*> f e
+			TypeDef n   -> pure TypeDef <*> pure n
 			_ -> pure t
 
 removeNullAbs :: Tree a -> Tree a
