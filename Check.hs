@@ -18,7 +18,7 @@ checkNamesCap :: Tree a -> [Error]
 checkNamesCap e =
 	case e of
 		TypeDef n -> checkUpper n
-		DataDef n -> checkUpper n
+		DataDef n as -> concatMap checkUpper (n:as) 
 		FuncDef n e -> errorPred (isLower $ head n) (FuncNotLowerError n)
 		_ -> composFold checkNamesCap e
 	where 

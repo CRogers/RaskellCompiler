@@ -24,7 +24,7 @@ langDef = PT.LanguageDef {
 	PT.opStart         = operators,
 	PT.opLetter        = operators,
 	PT.reservedNames   = ["let", "in", "if", "then", "else", "where", "type", "data"],
-	PT.reservedOpNames = ["="],
+	PT.reservedOpNames = ["=", "|", ";"],
 	PT.caseSensitive   = False
 }
 
@@ -105,10 +105,14 @@ typeDef = do
 	n <- ident
 	return $ TypeDef n
 
+alternatives = sepBy1 ident (symbol "|")
+
 dataDef = do
 	symbol "data"
 	n <- ident
-	return $ DataDef n
+	symbol "="
+	as <- alternatives
+	return $ DataDef n as
 
 def = do
 	d <- typeDef <|> dataDef <|> funcDef
@@ -122,4 +126,5 @@ start = do
 
 a = case testP funcDef "f x y = (a b) (if c then f else g) d;" of Right (FuncDef _ x) -> x
 b = case testP funcDef "f x = let a = x in let b = a in b;" of Right (FuncDef _ x) -> x
+alts = case testP start "data foo = Bar | baz | Quux;" of Right x -> x
 t = case testP start "type Cat; type mat; data sat; A x = y;" of Right x -> x
