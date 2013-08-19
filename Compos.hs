@@ -1,11 +1,10 @@
-{-# LANGUAGE RankNTypes #-} 
+{-# LANGUAGE Rank2Types #-} 
 
 module Compos where
 
 import Control.Applicative
 import Control.Monad.Identity
 import Data.Monoid
-import Data.Traversable
 import Data.Functor.Compose
 
 -- https://publications.lib.chalmers.se/records/fulltext/local_75172.pdf

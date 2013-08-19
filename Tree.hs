@@ -2,13 +2,8 @@
 
 module Tree where
 
-import Control.Monad.State
 import Control.Applicative
 import Data.Traversable
-import Data.Map (Map)
-import qualified Data.Map as Map
-import Data.Set (Set)
-import qualified Data.Set as Set
 import Compos
 
 type Name = String
@@ -17,10 +12,12 @@ type Param = String
 data Expr_
 data Binding_
 data Def_
+data Module_
 
 type Expr    = Tree Expr_
 type Binding = Tree Binding_
 type Def     = Tree Def_
+type Module  = Tree Module_
 
 data Tree :: * -> * where
 	Var      :: Name      -> Expr
@@ -34,6 +31,7 @@ data Tree :: * -> * where
 	FuncDef  :: Name      -> Expr   -> Def
 	TypeDef  :: Name      -> Def
 	DataDef  :: Name      -> Def
+	Module   :: [Def]     -> Module
 
 deriving instance Show (Tree a)
 deriving instance Eq (Tree a)
@@ -49,34 +47,5 @@ instance Compos Tree where
 			FuncDef n e -> pure FuncDef <*> pure n        <*> f e
 			TypeDef n   -> pure TypeDef <*> pure n
 			DataDef n   -> pure DataDef <*> pure n
+			Module ds   -> pure Module  <*> traverse f ds
 			_ -> pure t
-
-removeNullAbs :: Tree a -> Tree a
-removeNullAbs e =
-	case e of
-		Abs [] e -> e
-		_ -> composOp removeNullAbs e
-
-insertManyMap :: (Ord k) => [k] -> [v] -> Map k v -> Map k v
-insertManyMap ks vs = Map.union (Map.fromList (zip ks vs))
-
-data Error = NameError Name
-	deriving (Show)
-
-insertManySet :: (Ord a) => [a] -> Set a -> Set a
-insertManySet xs s = Set.union s (Set.fromList xs)
-
-checkNames :: (Tree a) -> [Error]
-checkNames e = fst $ runState (cn e) Set.empty
-	where
-		cn :: (Tree a) -> State (Set Name) [Error]
-		cn e =
-			case e of
-				Var n -> do
-					env <- get
-					return $ if Set.member n env then [] else [NameError n]
-				Abs ps e' -> do
-					env <- get
-					put $ insertManySet ps env
-					cn e'
-				_ -> composFoldM cn e

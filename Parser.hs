@@ -19,7 +19,7 @@ langDef = PT.LanguageDef {
 	PT.commentEnd      = "-}",
 	PT.commentLine     = "--",
 	PT.nestedComments  = True,
-	PT.identStart      = lower <|> char '_',
+	PT.identStart      = letter <|> char '_',
 	PT.identLetter     = alphaNum <|> char '_',
 	PT.opStart         = operators,
 	PT.opLetter        = operators,
@@ -105,14 +105,21 @@ typeDef = do
 	n <- ident
 	return $ TypeDef n
 
+dataDef = do
+	symbol "data"
+	n <- ident
+	return $ DataDef n
+
 def = do
-	d <- typeDef <|> funcDef
+	d <- typeDef <|> dataDef <|> funcDef
 	symbol ";"
 	return d
 
 start = do
 	ws
-	many def
+	ds <- many def
+	return $ Module ds
 
 a = case testP funcDef "f x y = (a b) (if c then f else g) d;" of Right (FuncDef _ x) -> x
 b = case testP funcDef "f x = let a = x in let b = a in b;" of Right (FuncDef _ x) -> x
+t = case testP start "type Cat; type mat; data sat; A x = y;" of Right x -> x
